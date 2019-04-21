@@ -4,8 +4,11 @@ import logging
 
 import click
 try:
-    import matplotlib.pyplot as plt
-except ImportError:
+    import matplotlib
+    matplotlib.use('qt5agg')
+    from matplotlib import pyplot as plt
+except ImportError as err:
+    print(err)
     _HAS_MPL = False
 else:
     _HAS_MPL = True
