@@ -6,7 +6,9 @@ import zipfile
 import tempfile
 from itertools import chain
 from operator import itemgetter
-
+from openpyxl.utils.exceptions import (
+    IllegalCharacterError
+)
 import numpy as np
 import pandas as pd
 
@@ -577,7 +579,7 @@ class Table(object):
 
         """
         kw = {
-            'sheet_name': 'page-{}-table-{}'.format(self.page, self.order),
+            'sheet_name': 'page-{:05d}-table-{:05d}'.format(self.page, self.order),
             'encoding': 'utf-8'
         }
         kw.update(kwargs)
@@ -617,7 +619,7 @@ class Table(object):
         }
         kw.update(kwargs)
         conn = sqlite3.connect(path)
-        table_name = 'page-{}-table-{}'.format(self.page, self.order)
+        table_name = 'page-{:05d}-table-{:05d}'.format(self.page, self.order)
         self.df.to_sql(table_name, conn, **kw)
         conn.commit()
         conn.close()
@@ -659,7 +661,7 @@ class TableList(object):
         root = kwargs.get('root')
         ext = kwargs.get('ext')
         for table in self._tables:
-            filename = os.path.join('{}-page-{}-table-{}{}'.format(
+            filename = os.path.join('{}-page-{:05d}-table-{:05d}{}'.format(
                                     root, table.page, table.order, ext))
             filepath = os.path.join(dirname, filename)
             to_format = self._format_func(table, f)
@@ -673,7 +675,7 @@ class TableList(object):
         zipname = os.path.join(os.path.dirname(path), root) + '.zip'
         with zipfile.ZipFile(zipname, 'w', allowZip64=True) as z:
             for table in self._tables:
-                filename = os.path.join('{}-page-{}-table-{}{}'.format(
+                filename = os.path.join('{}-page-{:05d}-table-{:05d}{}'.format(
                                         root, table.page, table.order, ext))
                 filepath = os.path.join(dirname, filename)
                 z.write(filepath, os.path.basename(filepath))
@@ -712,8 +714,11 @@ class TableList(object):
             filepath = os.path.join(dirname, basename)
             writer = pd.ExcelWriter(filepath)
             for table in self._tables:
-                sheet_name = 'page-{}-table-{}'.format(table.page, table.order)
-                table.df.to_excel(writer, sheet_name=sheet_name, encoding='utf-8')
+                sheet_name = 'page-{:05d}-table-{:05d}'.format(table.page, table.order)
+                try:
+                    table.df.to_excel(writer, sheet_name=sheet_name, encoding='utf-8')
+                except IllegalCharacterError:
+                    pass
             writer.save()
             if compress:
                 zipname = os.path.join(os.path.dirname(path), root) + '.zip'
